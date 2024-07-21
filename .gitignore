@@ -1,1 +1,4 @@
 input_data/
+logs/
+checkpoints/
+plots/

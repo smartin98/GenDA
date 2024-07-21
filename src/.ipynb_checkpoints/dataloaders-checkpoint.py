@@ -46,33 +46,46 @@ class GAN_dataset(Dataset):
         self.n_channels = len(variables)
         self.model_zarr_name = model_zarr_name
         
-        if not multiprocessing:
-            self.ds_model = xr.open_zarr(self.data_dir + self.model_zarr_name)
-            
-            i_lon_min = self.lon_buffers[0]
+        # if not multiprocessing:
+        # self.ds_model = xr.open_zarr(self.data_dir + self.model_zarr_name)
+        self.ds_model = xr.open_dataset(self.data_dir + 'cmems_mod_glo_phy_my_0.083deg_P1D-m_multi-vars_70.00W-40.00W_25.00N-45.00N_0.49m_2010-01-01-2020-12-31.nc')
+        ds_m = xr.open_dataset(self.data_dir + 'glorys_gulfstream_means.nc')
+        monthly_climatology = xr.open_dataset(self.data_dir + 'glorys_gulfstream_climatology.nc')
+        self.ds_model['thetao'] = self.ds_model['thetao'].groupby('time.month') - monthly_climatology['thetao']
+        self.ds_model['so'] = self.ds_model['so'].groupby('time.month') - monthly_climatology['so']
+        for var in ['zos','uo','vo']:
+            self.ds_model[var] = self.ds_model[var] - ds_m[var]
+        
+        i_lon_min = self.lon_buffers[0]
+        if self.lon_buffers[1] is not None:
             i_lon_max = -self.lon_buffers[1]
-            i_lat_min = self.lat_buffers[0]
+        else:
+            i_lon_max = None
+        i_lat_min = self.lat_buffers[0]
+        if self.lat_buffers[1] is not None:
             i_lat_max = -self.lat_buffers[1]
-                
-            self.ds_model = self.ds_model.isel(longitude = slice(i_lon_min, i_lon_max), latitude = slice(i_lat_min, i_lat_max), depth = 0, drop = True).sel(time=slice(self.date_range[0],self.date_range[1]), drop = True)
+        else:
+            i_lat_max = None
             
-            self.N_lon = self.ds_model.dims['longitude']
-            self.N_lat = self.ds_model.dims['latitude']
-            self.N_time = self.ds_model.dims['time']
-            
-            # Generate isel arguments
-            self.indexer = []
-            np.random.seed(1)
-            for t in range(self.N_time):
-                lat_indices = np.random.choice(self.N_lat - self.n_lat + 1, self.samples_per_day, replace=False)
-                lon_indices = np.random.choice(self.N_lon - self.n_lon + 1, self.samples_per_day, replace=False)
-                for i in range(lon_indices.shape[0]):# lat_start in lat_indices:
-                    # for lon_start in lon_indices:
-                    self.indexer.append({
-                        'latitude': slice(lat_indices[i], lat_indices[i] + self.n_lat),
-                        'longitude': slice(lon_indices[i], lon_indices[i] + self.n_lon),
-                        'time': t
-                    })
+        self.ds_model = self.ds_model.isel(longitude = slice(i_lon_min, i_lon_max), latitude = slice(i_lat_min, i_lat_max), depth = 0, drop = True).sel(time=slice(self.date_range[0],self.date_range[1]), drop = True)
+        
+        self.N_lon = self.ds_model.dims['longitude']
+        self.N_lat = self.ds_model.dims['latitude']
+        self.N_time = self.ds_model.dims['time']
+        
+        # Generate isel arguments
+        self.indexer = []
+        np.random.seed(1)
+        for t in range(self.N_time):
+            lat_indices = np.random.choice(self.N_lat - self.n_lat + 1, self.samples_per_day, replace=False)
+            lon_indices = np.random.choice(self.N_lon - self.n_lon + 1, self.samples_per_day, replace=False)
+            for i in range(lon_indices.shape[0]):# lat_start in lat_indices:
+                # for lon_start in lon_indices:
+                self.indexer.append({
+                    'latitude': slice(lat_indices[i], lat_indices[i] + self.n_lat),
+                    'longitude': slice(lon_indices[i], lon_indices[i] + self.n_lon),
+                    'time': t
+                })
             
             
         
@@ -80,7 +93,14 @@ class GAN_dataset(Dataset):
         return int(self.samples_per_day*(self.date_range[1]-self.date_range[0]).days)
     
     def worker_init_fn(self, worker_id):
-        self.ds_model = xr.open_dataset(self.data_dir + self.model_zarr_name, engine='zarr')
+        # self.ds_model = xr.open_zarr(self.data_dir + self.model_zarr_name)
+        self.ds_model = xr.open_dataset(self.data_dir + 'cmems_mod_glo_phy_my_0.083deg_P1D-m_multi-vars_70.00W-40.00W_25.00N-45.00N_0.49m_2010-01-01-2020-12-31.nc')
+        ds_m = xr.open_dataset(self.data_dir + 'glorys_gulfstream_means.nc')
+        monthly_climatology = xr.open_dataset(self.data_dir + 'glorys_gulfstream_climatology.nc')
+        self.ds_model['thetao'] = self.ds_model['thetao'].groupby('time.month') - monthly_climatology['thetao']
+        self.ds_model['so'] = self.ds_model['so'].groupby('time.month') - monthly_climatology['so']
+        for var in ['zos','uo','vo']:
+            self.ds_model[var] = self.ds_model[var] - ds_m[var]
 
         i_lon_min = self.lon_buffers[0]
         if self.lon_buffers[1] is not None:
@@ -112,6 +132,19 @@ class GAN_dataset(Dataset):
                     'longitude': slice(lon_indices[i], lon_indices[i] + self.n_lon),
                     'time': t
                 })
+
+    def update_indexes(self):
+        self.indexer = []
+        for t in range(self.N_time):
+            lat_indices = np.random.choice(self.N_lat - self.n_lat + 1, self.samples_per_day, replace=False)
+            lon_indices = np.random.choice(self.N_lon - self.n_lon + 1, self.samples_per_day, replace=False)
+            for i in range(lon_indices.shape[0]):# lat_start in lat_indices:
+                # for lon_start in lon_indices:
+                self.indexer.append({
+                    'latitude': slice(lat_indices[i], lat_indices[i] + self.n_lat),
+                    'longitude': slice(lon_indices[i], lon_indices[i] + self.n_lon),
+                    'time': t
+                })
         
 
     def __getitem__(self, idx):
@@ -128,3 +161,4 @@ class GAN_dataset(Dataset):
         outvar = torch.nan_to_num(outvar, nan=0.0)
         
         return invar, outvar
+
