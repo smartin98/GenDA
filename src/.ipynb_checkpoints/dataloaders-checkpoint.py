@@ -149,5 +149,5 @@ class VAE_dataset(Dataset):
         outvar = torch.from_numpy(outvar.astype(np.float32))
         outvar = torch.nan_to_num(outvar, nan=0.0)
         
-        return outvar
+        return outvar, outvar
 
