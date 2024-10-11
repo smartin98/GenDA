@@ -11,10 +11,8 @@ class Diffusion_Training_Dataset(Dataset):
 
     Attributes:
         data_dir (str): The directory containing all input data files.
-        latent_dim (int): Dimension of random latent vector inputted to gnerator
         n_lon (int): Longitude size of NN reconstruction patch
         n_lat (int): Latitude size of NN reconstruction patch
-        samples_per_day (int): Number of patches to take on each day (randomly distributed)
         date_range (list): List of 2 datetime objects for start and end date of sampling period.
         variables (list): List of strings with the names of the data variables to extract from the dataset e.g. 'zos', 'so','thetao', 'uo', 'vo'
         var_stds (dictionary): Dictionary with std to normalize by for each variable in variables
@@ -31,22 +29,23 @@ class Diffusion_Training_Dataset(Dataset):
             Output Data (outvar): A tensor of shape (len(variables), n_lon, n_lat) containing extracted Glorys data.
     """
     
-    def __init__(self, data_dir, n_lon, n_lat, samples_per_day, date_range, variables, var_stds, lon_buffers = [None, None], lat_buffers = [None, None], multiprocessing = True):
+    def __init__(self, data_dir, n_lon, n_lat, date_range, variables, var_stds, lon_buffers = [None, None], lat_buffers = [None, None], multiprocessing = True):
         self.data_dir = data_dir
         self.n_lon = n_lon
         self.n_lat = n_lat
-        self.samples_per_day = samples_per_day
         self.lon_buffers = lon_buffers
         self.lat_buffers = lat_buffers
         self.date_range = date_range
         self.variables = variables
         self.var_stds = var_stds
         self.n_channels = len(variables)
-        
-        # load the pre-processed GLORYS data, mean fields, and monthly climatology (generated using pre-processing script):
-        self.ds_model = xr.open_dataset(self.data_dir + 'cmems_mod_glo_phy_my_0.083deg_P1D-m_multi-vars_70.00W-40.00W_25.00N-45.00N_0.49m_2010-01-01-2020-12-31_wERA5_winds_and_geostrophy_15m_ekman_regression.nc')
-        ds_m = xr.open_dataset(self.data_dir + 'glorys_gulfstream_means_wERA5_winds_and_geostrophy_15m_ekman_regression.nc')
-        monthly_climatology = xr.open_dataset(self.data_dir + 'glorys_gulfstream_climatology.nc')
+        self.model_file = 'cmems_mod_glo_phy_my_0.083deg_P1D-m_multi-vars_70.00W-40.00W_25.00N-45.00N_0.49m_2010-01-01-2020-12-31_wERA5_winds_and_geostrophy_15m_ekman_regression.nc'
+        self.mean_file = 'glorys_gulfstream_means_wERA5_winds_and_geostrophy_15m_ekman_regression.nc'
+        self.clim_file = 'glorys_gulfstream_climatology.nc'
+
+        self.ds_model = xr.open_dataset(self.data_dir + self.model_file)
+        ds_m = xr.open_dataset(self.data_dir + self.mean_file)
+        monthly_climatology = xr.open_dataset(self.data_dir + self.clim_file)
         
         # de-seasonalize sst and sss
         if 'so' in self.variables:
@@ -83,9 +82,10 @@ class Diffusion_Training_Dataset(Dataset):
     
     def worker_init_fn(self, worker_id):
         # initialize dataset on each worker if multi-processing used.
-        self.ds_model = xr.open_dataset(self.data_dir + 'cmems_mod_glo_phy_my_0.083deg_P1D-m_multi-vars_70.00W-40.00W_25.00N-45.00N_0.49m_2010-01-01-2020-12-31_wERA5_winds_and_geostrophy_15m_ekman_regression.nc')
-        ds_m = xr.open_dataset(self.data_dir + 'glorys_gulfstream_means_wERA5_winds_and_geostrophy_15m_ekman_regression.nc')
-        monthly_climatology = xr.open_dataset(self.data_dir + 'glorys_gulfstream_climatology.nc')
+        self.ds_model = xr.open_dataset(self.data_dir + self.model_file)
+        ds_m = xr.open_dataset(self.data_dir + self.mean_file)
+        monthly_climatology = xr.open_dataset(self.data_dir + self.clim_file)
+        
         if 'so' in self.variables:
             self.ds_model['thetao'] = self.ds_model['thetao'].groupby('time.month') - monthly_climatology['thetao']
         if 'thetao' in self.variables:
