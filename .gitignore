@@ -2,3 +2,8 @@ input_data/
 logs/
 checkpoints/
 plots/
+osse_preds/
+paper_figs/
+osse_preds_ageos_fixed/
+batch64_songunet_vanilla_winds_ageos_OSE_L3L4/
+misc/
