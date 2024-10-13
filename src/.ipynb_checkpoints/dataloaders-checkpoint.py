@@ -42,6 +42,7 @@ class Diffusion_Training_Dataset(Dataset):
         self.model_file = 'cmems_mod_glo_phy_my_0.083deg_P1D-m_multi-vars_70.00W-40.00W_25.00N-45.00N_0.49m_2010-01-01-2020-12-31_wERA5_winds_and_geostrophy_15m_ekman_regression.nc'
         self.mean_file = 'glorys_gulfstream_means_wERA5_winds_and_geostrophy_15m_ekman_regression.nc'
         self.clim_file = 'glorys_gulfstream_climatology.nc'
+        self.multiprocessing = multiprocessing
 
         self.ds_model = xr.open_dataset(self.data_dir + self.model_file)
         ds_m = xr.open_dataset(self.data_dir + self.mean_file)
@@ -184,6 +185,7 @@ class GenDA_OSSE_Inference_Dataset(Dataset):
         self.model_file = 'cmems_mod_glo_phy_my_0.083deg_P1D-m_multi-vars_70.00W-40.00W_25.00N-45.00N_0.49m_2010-01-01-2020-12-31_wERA5_winds_and_geostrophy_15m_ekman_regression.nc'
         self.mean_file = 'glorys_gulfstream_means_wERA5_winds_and_geostrophy_15m_ekman_regression.nc'
         self.clim_file = 'glorys_gulfstream_climatology.nc'
+        self.multiprocessing = multiprocessing
 
         self.ds_model = xr.open_dataset(self.data_dir + self.model_file)
         ds_m = xr.open_dataset(self.data_dir + self.mean_file)
