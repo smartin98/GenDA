@@ -104,7 +104,7 @@ b_da = xr.DataArray(b_da, dims=['latitude', 'longitude'], coords={'latitude': ue
 
 # Use xr.apply_ufunc to apply linear regression over the latitude and longitude dimensions
 c_da, d_da = xr.apply_ufunc(
-    linear_regression_2d, 
+    linear_regression_1d, 
     ve, tx, ty,
     input_core_dims=[['time'], ['time'], ['time']],  # The dimensions over which the function operates
     output_core_dims=[[], []],  # No additional dimensions in the output (a and b are scalars)
