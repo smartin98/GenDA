@@ -4,6 +4,8 @@ GenDA - Generative Data Assimilation.
 
 :warning: *Work In Progress.* :warning:
 
+![Alt text](images/GenDA_generation_OSSE.gif)
+
 Experiments in generative neural data assimilation for multi-modal surface ocean state estimation. These experiments will be more thoroughly described in a pre-print which is in prep. along with a full code release.
 
 **The problem:** Estimate the multi-modal dynamical state of the surface ocean (sea surface height, temperature, salinity, and surface currents) from sparse satellite observations of sea surface height and temperature and low-resolution objective analysis products for sea surface height, temperature, and salinity.
