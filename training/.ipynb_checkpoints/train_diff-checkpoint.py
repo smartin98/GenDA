@@ -123,24 +123,29 @@ def main(cfg: DictConfig) -> None:
     validation_steps = getattr(cfg, "validation_steps", 10)
     seed = getattr(cfg, "seed", 0)
     dry_run = getattr(cfg, "dry_run", False)
+    
+    with open('/nobackup/samart18/GenDA/input_data/diffusion_training_rescale_factors.json', 'r') as f:
+        rescale_factors = json.load(f)
 
     
-
+    buffers = 12
     data_dir = '../input_data/'
-    ds = xr.open_dataset(data_dir + 'cmems_mod_glo_phy_my_0.083deg_P1D-m_multi-vars_70.00W-40.00W_25.00N-45.00N_0.49m_2010-01-01-2020-12-31_wERA5_winds_and_geostrophy_15m_ekman_regression.nc')
-    ds_m = xr.open_dataset(data_dir + 'glorys_gulfstream_means_wERA5_winds_and_geostrophy_15m_ekman_regression.nc')
-    ds_clim = xr.open_dataset(data_dir + 'glorys_gulfstream_climatology.nc')
-    
-    var_stds = {'zos':float((ds['zos']-ds_m['zos']).std()), 
-                'thetao':float((ds['thetao'].groupby('time.month')-ds_clim['thetao']).std()), 
-                'so':float((ds['so'].groupby('time.month')-ds_clim['so']).std()), 
-                'u_ageo_eddy':float((ds['u_ageo_eddy']-ds_m['u_ageo_eddy']).std()), 
-                'v_ageo_eddy':float((ds['v_ageo_eddy']-ds_m['v_ageo_eddy']).std()), 
-                'uas':float((ds['uas']-ds_m['uas']).std()), 
-                'vas':float((ds['vas']-ds_m['vas']).std())}
+    ds = xr.open_dataset(data_dir + 'glorys_pre_processed_fixed_noislands.nc').astype('float32') # 'cmems_mod_glo_phy_my_0.083deg_P1D-m_multi-vars_70.00W-40.00W_25.00N-45.00N_0.49$
+    ds_m = xr.open_dataset(data_dir + 'glorys_means_pre_processed_fixed_noislands.nc').astype('float32')
+    ds_clim = xr.open_dataset(data_dir + 'glorys_gulfstream_climatology.nc').astype('float32').isel(depth = 0, drop = True)
     
     
-    dataset = Diffusion_Training_Dataset(data_dir = data_dir, n_lon = 128, n_lat = 128, date_range = [date(2010,1,1),date(2016,12,31)], variables = ['zos', 'thetao', 'so', 'u_ageo_eddy', 'v_ageo_eddy', 'uas', 'vas'], var_stds = var_stds, lon_buffers = [3, None], lat_buffers = [None, 2], multiprocessing = False)
+    dataset = Diffusion_Training_Dataset(data_dir = '/nobackup/samart18/GenDA/input_data/', 
+                                         latent_dim = 1, 
+                                         n_lon = 128, 
+                                         n_lat = 128, 
+                                         date_range = [date(2010,1,1),date(2016,12,31)], 
+                                         variables = ['zos', 'thetao', 'so', 'u_ageo_eddy', 'v_ageo_eddy', 'uas', 'vas'], 
+                                         var_stds = rescale_factors, 
+                                         lon_buffers = [buffers, buffers], 
+                                         lat_buffers = [buffers, buffers + 6], 
+                                         multiprocessing = False, 
+                                         augment = False)
     
     batch_size = batch_size_global
     n_cpus = workers
@@ -151,7 +156,17 @@ def main(cfg: DictConfig) -> None:
     
     dataset_iter = iter(DataLoader(dataset, sampler = dataset_sampler, batch_size=batch_size))
 
-    dataset_val = Diffusion_Training_Dataset(data_dir = data_dir, n_lon = 128, n_lat = 128, date_range = [date(2018,1,1),date(2020,12,31)], variables = ['zos', 'thetao', 'so', 'u_ageo_eddy', 'v_ageo_eddy', 'uas', 'vas'], var_stds = var_stds, lon_buffers = [3, None], lat_buffers = [None, 2], multiprocessing = False)
+    dataset_val = Diffusion_Training_Dataset(data_dir = '/nobackup/samart18/GenDA/input_data/', 
+                                         latent_dim = 1, 
+                                         n_lon = 128, 
+                                         n_lat = 128, 
+                                         date_range = [date(2018,1,1),date(2020,12,31)], 
+                                         variables = ['zos', 'thetao', 'so', 'u_ageo_eddy', 'v_ageo_eddy', 'uas', 'vas'], 
+                                         var_stds = rescale_factors, 
+                                         lon_buffers = [buffers, buffers], 
+                                         lat_buffers = [buffers, buffers + 6], 
+                                         multiprocessing = False, 
+                                         augment = False)
     batch_size = batch_size_global
     n_cpus = workers
 

@@ -14,10 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
-#################
-# NVIDIA Modulus CorrDiff code with minor adaptations from Scott Martin to apply to surface ocean state estimation
-#################
+# NVIDIA MODULUS code with minor modifcations for application to surface ocean state estimation by Scott Martin
 
 """Train diffusion-based generative model using the techniques described in the
 paper "Elucidating the Design Space of Diffusion-Based Generative Models"."""
@@ -32,7 +29,8 @@ import sys
 sys.path.append('/nobackup/samart18/edm')
 sys.path.append('/nobackup/samart18/modulus')
 import numpy as np
-
+import matplotlib.pyplot as plt
+import cmocean
 import torch
 from torch.utils.data import Dataset, DataLoader
 import torch.nn as nn
@@ -123,30 +121,31 @@ def main(cfg: DictConfig) -> None:
     validation_steps = getattr(cfg, "validation_steps", 10)
     seed = getattr(cfg, "seed", 0)
     dry_run = getattr(cfg, "dry_run", False)
-    
+
     with open('/nobackup/samart18/GenDA/input_data/diffusion_training_rescale_factors.json', 'r') as f:
         rescale_factors = json.load(f)
 
     
     buffers = 12
-    data_dir = '../input_data/'
+    data_dir = '/nobackup/samart18/GenDA/input_data/'
     ds = xr.open_dataset(data_dir + 'glorys_pre_processed_fixed_noislands.nc').astype('float32') # 'cmems_mod_glo_phy_my_0.083deg_P1D-m_multi-vars_70.00W-40.00W_25.00N-45.00N_0.49$
     ds_m = xr.open_dataset(data_dir + 'glorys_means_pre_processed_fixed_noislands.nc').astype('float32')
-    ds_clim = xr.open_dataset(data_dir + 'glorys_gulfstream_climatology.nc').astype('float32').isel(depth = 0, drop = True)
+    ds_clim = xr.open_dataset(data_dir + 'glorys_gulfstream_climatology.nc').astype('float32').isel(depth = 0, drop = True)    # ds = 
     
     
     dataset = Diffusion_Training_Dataset(data_dir = '/nobackup/samart18/GenDA/input_data/', 
                                          latent_dim = 1, 
                                          n_lon = 128, 
                                          n_lat = 128, 
+                                         samples_per_day = 10, 
                                          date_range = [date(2010,1,1),date(2016,12,31)], 
                                          variables = ['zos', 'thetao', 'so', 'u_ageo_eddy', 'v_ageo_eddy', 'uas', 'vas'], 
                                          var_stds = rescale_factors, 
                                          lon_buffers = [buffers, buffers], 
                                          lat_buffers = [buffers, buffers + 6], 
                                          multiprocessing = False, 
-                                         augment = False)
-    
+                                         augment = False
+                                        )
     batch_size = batch_size_global
     n_cpus = workers
 
@@ -160,13 +159,15 @@ def main(cfg: DictConfig) -> None:
                                          latent_dim = 1, 
                                          n_lon = 128, 
                                          n_lat = 128, 
+                                         samples_per_day = 10, 
                                          date_range = [date(2018,1,1),date(2020,12,31)], 
                                          variables = ['zos', 'thetao', 'so', 'u_ageo_eddy', 'v_ageo_eddy', 'uas', 'vas'], 
                                          var_stds = rescale_factors, 
                                          lon_buffers = [buffers, buffers], 
                                          lat_buffers = [buffers, buffers + 6], 
                                          multiprocessing = False, 
-                                         augment = False)
+                                         augment = False
+                                        )
     batch_size = batch_size_global
     n_cpus = workers
 
@@ -181,7 +182,6 @@ def main(cfg: DictConfig) -> None:
     c.fp_optimizations = fp_optimizations
     c.grad_clip_threshold = getattr(cfg, "grad_clip_threshold", None)
     c.lr_decay = getattr(cfg, "lr_decay", 0.8)
-    
 
     # Initialize logger.
     os.makedirs("logs", exist_ok=True)
@@ -210,11 +210,15 @@ def main(cfg: DictConfig) -> None:
         encoder_type="standard",
         decoder_type="standard",
         checkpoint_level=songunet_checkpoint_level,
-    )
-    
+    )  # , attn_resolutions=[28]
     
     c.network_kwargs.class_name = "modulus.models.diffusion.EDMPrecond"
-    c.loss_kwargs.class_name = "modulus.metrics.diffusion.EDMLoss"
+    c.network_kwargs.sigma_data = 1
+    if not physics_loss:
+        c.loss_kwargs.class_name = "modulus.metrics.diffusion.EDMLoss"
+    else:
+        c.loss_kwargs.class_name = "modulus.metrics.diffusion.EDMLossPhysics"
+    c.loss_kwargs.sigma_data = 1
     
     if augment:
         if augment < 0 or augment > 1:
@@ -255,6 +259,8 @@ def main(cfg: DictConfig) -> None:
 
     c.run_dir = outdir
 
+    c.lambda_physics = getattr(cfg, "lambda_physics", None)
+
     # Print options.
     for key in list(c.keys()):
         val = c[key]
@@ -285,7 +291,6 @@ def main(cfg: DictConfig) -> None:
     training_loop.training_loop(
         dataset, dataset_iter, dataset_val, valid_dataset_iter, **c
     )
-
 
 # ----------------------------------------------------------------------------
 
