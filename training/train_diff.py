@@ -59,10 +59,6 @@ from modulus.launch.logging import PythonLogger, RankZeroLoggingWrapper
 from modulus.utils.generative import EasyDict, parse_int_list, InfiniteSampler
 
 from training_diff import training_loop
-# from datasets.dataset import init_train_valid_datasets_from_config
-
-def IQR(dist):
-    return np.percentile(dist, 75) - np.percentile(dist, 25)
 
 
 @hydra.main(version_base="1.2", config_path="conf", config_name="config_train_base")
@@ -130,7 +126,7 @@ def main(cfg: DictConfig) -> None:
     
     buffers = 12
     data_dir = '../input_data/'
-    ds = xr.open_dataset(data_dir + 'glorys_pre_processed_fixed_noislands.nc').astype('float32') # 'cmems_mod_glo_phy_my_0.083deg_P1D-m_multi-vars_70.00W-40.00W_25.00N-45.00N_0.49$
+    ds = xr.open_dataset(data_dir + 'glorys_pre_processed_fixed_noislands.nc').astype('float32') 
     ds_m = xr.open_dataset(data_dir + 'glorys_means_pre_processed_fixed_noislands.nc').astype('float32')
     ds_clim = xr.open_dataset(data_dir + 'glorys_gulfstream_climatology.nc').astype('float32').isel(depth = 0, drop = True)
     
