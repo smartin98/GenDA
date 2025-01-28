@@ -140,7 +140,7 @@ def scalar_spectrum(psi, dx, dy):
     fft = np.fft.fft2(psi)
     fft_shifted = np.abs(np.fft.fftshift(fft))
     
-    fft_magnitude_shifted = np.abs(fft_shifted)#**2+fft_v_shifted**2)
+    fft_magnitude_shifted = np.abs(fft_shifted) ** 2
     
     Nx, Ny = psi.shape[-2:]
     kx = 2 * np.pi * np.fft.fftfreq(Nx, dx)
