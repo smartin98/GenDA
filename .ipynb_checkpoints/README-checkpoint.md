@@ -21,9 +21,9 @@ Motivations for a generative approach vs regression approach:
 ## **The Method**: [Score-Based Data Assimilation](https://proceedings.neurips.cc/paper_files/paper/2023/hash/7f7fa581cc8a1970a4332920cdf87395-Abstract-Conference.html) (referred to here as 'generative data assimilation' or 'GenDA')
 
 *Step 1:* Train unconditional diffusion model to produce realistic multi-modal samples. NB: this training is conducted on full model fields with no generation of simulated observations. <br>
-![Alt text](images/GenDA training schematic v2.png)
+![Alt text](images/GenDA_training_schematic.png)
 *Step 2:* Guide the generation from the trained model using sparse observations by taking gradient steps wrt the state estimate, x, while keeping the diffusion model parameters fixed to preserve the qualitative nature of the model outputs. (Method proposed by [Rozet & Louppe 2023](https://proceedings.neurips.cc/paper_files/paper/2023/hash/7f7fa581cc8a1970a4332920cdf87395-Abstract-Conference.html) and recently applied to atmospheric reanalysis by [Manshausen et al.](https://arxiv.org/abs/2406.16947)).
-![Alt text](images/GenDA inference schematic v3.png)
+![Alt text](images/GenDA_inference_schematic.png)
 
 **Training data**: simulation data from the 1/12 degree global reanalysis product [GLORYS 12](https://data.marine.copernicus.eu/product/GLOBAL_MULTIYEAR_PHY_001_030/description) sub-setted in a region surrounding the Gulf Stream. 
 
