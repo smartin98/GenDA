@@ -13,39 +13,21 @@ import sys
 sys.path.append('/nobackup/samart18/modulus')
 sys.path.append('src')
 
-from concurrent.futures import ThreadPoolExecutor
 
-import cftime
-from einops import rearrange
-import hydra
-import netCDF4 as nc
-import nvtx
-from omegaconf import OmegaConf, DictConfig
 import torch
-from torch.distributed import gather
 import torch._dynamo
 import tqdm
 
 from src.dataloaders import *
 
 from modulus.distributed import DistributedManager
-from modulus.launch.logging import PythonLogger, RankZeroLoggingWrapper
-from modulus.utils.generative import (
-    ablation_sampler,
-    parse_int_list,
-    StackedRandomGenerator,
-    InfiniteSampler,
-)
+from modulus.utils.generative import parse_int_list
 from modulus import Module
 
-time_format = "%Y-%m-%dT%H:%M:%S"
-
 import torch.nn as nn
-from torch import Size, Tensor
 import torch.nn.functional as F
 from typing import *
 from tqdm import tqdm
-import math
 
 from src.sda import *
 import json
@@ -306,23 +288,28 @@ for t in range(365):
                                ds_oi['sss_error'].isel(time = t)), axis = 0), axis = 0))
 
     oi_mask = np.stack((~np.isnan(ds_oi['ssh'].isel(time = t)), ~np.isnan(ds_oi['sst'].isel(time = t)), ~np.isnan(ds_oi['sss'].isel(time = t))), axis = 0)
-    
 
     def A(x):
         inst_obs = x[:, total_mask.astype('bool')]
-        n_i_obs = torch.numel(inst_obs)   
+
+        ssh = x[:,0:1,].clone() * rescale_factors['zos'] + ssh_mean.to(x.device)
+        sst = x[:,1:2,].clone() * rescale_factors['thetao'] + sst_mean.to(x.device)
+        sss = x[:,2:3,].clone() * rescale_factors['so'] + sss_mean.to(x.device)
         
         # smooth background SSH, SST, SSS from OI:
-        smoothed_obs = multichannel_gaussian_blur(x[:,:3,], 
+        smoothed_obs = multichannel_gaussian_blur(torch.concat((ssh,sst,sss), axis = 1), 
                                                  sigmas_rc = [(sigma_lat_ssh, sigma_lon_ssh), 
                                                              (sigma_lat_sst, sigma_lon_sst), 
                                                              (sigma_lat_sss, sigma_lon_sss)]
                                                  )
+        # smoothed_obs_rescale = np.zeros(smoothed_obs.shape)
+        smoothed_obs[:,0,] = (smoothed_obs[:,0,] - ssh_mean.to(x.device))/rescale_factors['zos']
+        smoothed_obs[:,1,] = (smoothed_obs[:,1,] - sst_mean.to(x.device))/rescale_factors['thetao']
+        smoothed_obs[:,2,] = (smoothed_obs[:,2,] - sss_mean.to(x.device))/rescale_factors['so']
+        
         smoothed_obs = smoothed_obs[:,oi_mask]
         
-        n_s = torch.numel(smoothed_obs)
-            
-        return torch.concat((inst_obs, smoothed_obs),axis=1)
+       	return torch.concat((inst_obs, smoothed_obs),axis=1)
 
     inst_obs = data_obs[total_mask]
     inst_obs = inst_obs.reshape(1,inst_obs.shape[0]).repeat(n_members,1)
