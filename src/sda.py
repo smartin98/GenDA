@@ -3,61 +3,7 @@ import torch
 import torch.nn as nn
 from typing import *
 from torch import Size, Tensor
-from tqdm import tqdm
-
-
-
-class GaussianScore(nn.Module):
-    r"""Creates a score module for Gaussian inverse problems.
-
-    .. math:: p(y | x) = N(y | A(x), Σ)
-
-    Note:
-        This module returns :math:`-\sigma(t) s(x(t), t | y)`. (i.e. epsilon)
-    """
-
-    def __init__(
-        self,
-        y: Tensor,
-        A: Callable[[Tensor], Tensor],
-        std: Union[float, Tensor],
-        sde: VPSDE,
-        gamma: Union[float, Tensor] = 1e-2,
-        detach: bool = False,
-    ):
-        super().__init__()
-
-        self.register_buffer('y', y)
-        self.register_buffer('std', torch.as_tensor(std))
-        self.register_buffer('gamma', torch.as_tensor(gamma))
-
-        self.A = A
-        self.sde = sde
-        self.detach = detach
-
-    def forward(self, x: Tensor, t: Tensor, c: Tensor = None) -> Tensor:
-        mu, sigma = self.sde.mu(t), self.sde.sigma(t)
-
-        if self.detach:
-            eps = self.sde.eps(x, t)
-
-        with torch.enable_grad():
-            x = x.detach().requires_grad_(True)
-
-            if not self.detach:
-                eps = self.sde.eps(x, t)
-
-            x_ = (x - sigma * eps) / mu
-
-            err = self.y - self.A(x_)
-            var = self.std ** 2 + self.gamma * (sigma / mu) ** 2
-
-            log_p = -(err ** 2 / var).sum() / 2
-
-        s, = torch.autograd.grad(log_p, x)
-
-        return eps - sigma * s
-    
+from tqdm import tqdm    
 
 class VPSDE(nn.Module):
     r"""Creates a noise scheduler for the variance preserving (VP) SDE.
@@ -168,6 +114,58 @@ class VPSDE(nn.Module):
             return err.mean()
         else:
             return (err * w).mean() / w.mean()
+        
+        
+class GaussianScore(nn.Module):
+    r"""Creates a score module for Gaussian inverse problems.
+
+    .. math:: p(y | x) = N(y | A(x), Σ)
+
+    Note:
+        This module returns :math:`-\sigma(t) s(x(t), t | y)`. (i.e. epsilon)
+    """
+
+    def __init__(
+        self,
+        y: Tensor,
+        A: Callable[[Tensor], Tensor],
+        std: Union[float, Tensor],
+        sde: VPSDE,
+        gamma: Union[float, Tensor] = 1e-2,
+        detach: bool = False,
+    ):
+        super().__init__()
+
+        self.register_buffer('y', y)
+        self.register_buffer('std', torch.as_tensor(std))
+        self.register_buffer('gamma', torch.as_tensor(gamma))
+
+        self.A = A
+        self.sde = sde
+        self.detach = detach
+
+    def forward(self, x: Tensor, t: Tensor, c: Tensor = None) -> Tensor:
+        mu, sigma = self.sde.mu(t), self.sde.sigma(t)
+
+        if self.detach:
+            eps = self.sde.eps(x, t)
+
+        with torch.enable_grad():
+            x = x.detach().requires_grad_(True)
+
+            if not self.detach:
+                eps = self.sde.eps(x, t)
+
+            x_ = (x - sigma * eps) / mu
+
+            err = self.y - self.A(x_)
+            var = self.std ** 2 + self.gamma * (sigma / mu) ** 2
+
+            log_p = -(err ** 2 / var).sum() / 2
+
+        s, = torch.autograd.grad(log_p, x)
+
+        return eps - sigma * s
 
 class eps_edm(nn.Module):
     r"""Converts denoising model trained in the EDM framework (Karras et al. 2022) to the epsilon used in SDA (Rozet & Louppe 2023), following the formula from appendix of Manshausen et al. 2024.

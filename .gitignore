@@ -9,3 +9,5 @@ batch64_songunet_vanilla_winds_ageos_OSE_L3L4/
 misc/
 predictions/
 unet_checkpoints/
+.ipynb_checkpoints/
+inference/.ipynb_checkpoints/

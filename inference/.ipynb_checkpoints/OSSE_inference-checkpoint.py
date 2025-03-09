@@ -47,9 +47,6 @@ import math
 from src.sda import *
 import json
 from glob import glob
-# from torchvision.transforms import GaussianBlur
-
-
 
 def multichannel_gaussian_blur(img, sigmas_rc):
     """
@@ -160,7 +157,7 @@ ds_oi['sss_oi'][:,-8:,:] = np.nan
 
 print('loading dataset')
 
-dataset = OSSE_dataset(data_dir = '/nobackup/samart18/GenDA/input_data/', 
+dataset = GenDA_OSSE_Inference_Dataset(data_dir = '/nobackup/samart18/GenDA/input_data/', 
                        lon_min = lon_min_NN, 
                        lon_max = lon_max_NN - NN_res,
                        lat_min = lat_min_NN, 
@@ -302,7 +299,7 @@ std_ssh_oi = float(ds_oi['ssh_oi'].std())
 std_sst_oi = float(ds_oi['sst_oi'].std())
 std_sss_oi = float(ds_oi['sss_oi'].std())
 
-pred_dir = f'predictions/batch64_songunet_vanilla_ema_noislands_osse_wnoise_ideal_drifters_attenuation{attenuation_factor}_winds_noiselevel1e-2/'
+pred_dir = f'predictions/batch64_songunet_vanilla_ema_noislands_osse_wnoise_attenuation{attenuation_factor}/'
 
 if ~(os.path.isdir(pred_dir)):
     os.mkdir(pred_dir)
@@ -335,8 +332,8 @@ for t in range(365):
     total_mask = np.stack((ds_masks['ssh_total'].isel(time = t), 
                            ds_masks['sst_mask'].isel(time = t), 
                            np.zeros((128,128)),
-                           ds_masks['drifter_mask'].isel(time = t),
-                           ds_masks['drifter_mask'].isel(time = t),
+                           np.zeros((128,128)),
+                           np.zeros((128,128)),
                            np.ones((128,128)),
                            np.ones((128,128)),
                           ), axis = 0)
@@ -408,7 +405,6 @@ for t in range(365):
             gamma = 1e-1,
         ),
         shape=x_star.shape[1:],
-        outer = True,
     ).cuda()
     # make predictions:
     x = sde.sample((n_members,), steps=256, corrections=0, tau=0.3).cpu().numpy()

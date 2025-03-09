@@ -359,7 +359,6 @@ for t in range(365):
             gamma = 1e-1,
         ),
         shape=(7,128,128),
-        outer = True,
     ).cuda()
     # make predictions:
     x = sde.sample((n_members,), steps=256, corrections=0, tau=0.3).cpu().numpy()
