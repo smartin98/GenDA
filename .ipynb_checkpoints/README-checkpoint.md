@@ -39,10 +39,7 @@ Motivations for a generative approach vs regression approach:
 
 1. ```./pre-processing``` contains code for preparing the desired target fields from publicly available datasets. For example, we subtract geostrophic currents and Ekman currents (derived using a linear regression model) from the surface current variable we seek to reconstruct.
 2. ```./src``` contains utility code (e.g. dataloaders, neural network architecture for a baseline UNet regression approach)
-3. The GenDA diffusion model code is adapted from [NVIDIA Modulus CorrDiff](https://github.com/NVIDIA/modulus/tree/main/examples/generative/corrdiff)(installed from upstream repo on 07/21/2024, looks like they refactored the code since).
+3. The GenDA diffusion model code is adapted from [NVIDIA Modulus CorrDiff](https://github.com/NVIDIA/modulus/tree/main/examples/generative/corrdiff)(installed from upstream repo on 07/21/2024, looks like they refactored the code since so I include here my local copy for reproducibility).
 4. ```./conf``` contains hydra config files used for model training.
-5. ```./sda``` contains the code for the score-based data assimilation method (i.e. observation-guided inference given a diffusion model trained using the CorrDiff code). This is a minor adaptation from [the orginal implementation](https://github.com/francois-rozet/sda) incorporating the modification described in Appendix B of [Manshausen et al.](https://arxiv.org/abs/2406.16947).
-6. ```./training``` contains training scripts.
-7. ```./inference``` contains inference scripts for both the OSE and OSSE.
-8. ```./viz.ipynb``` visualizes the reconstructions.
-9. More quantitative evaluation metrics coming soon...
+5. ```./training``` contains training scripts.
+6. ```./inference``` contains inference scripts for both the OSE and OSSE.
