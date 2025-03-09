@@ -1,0 +1,128 @@
+[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "nvidia-modulus"
+authors = [
+  { name="NVIDIA Modulus Team"},
+]
+description = "A deep learning framework for AI-driven multi-physics systems"
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "Apache 2.0"}
+dependencies = [
+    "torch>=2.0.0",
+    "numpy>=1.22.4,<1.25",
+    "xarray>=2023.1.0",
+    "zarr>=2.14.2",
+    "fsspec>=2023.1.0",
+    "s3fs>=2023.5.0",
+    "nvidia_dali_cuda120>=1.35.0",
+    "setuptools>=67.6.0",
+    "certifi>=2023.7.22",
+    "pytz>=2023.3",
+    "treelib>=1.2.5",
+    "tqdm>=4.60.0",
+    "nvtx>=0.2.8",
+    "onnx>=1.14.0",
+    "timm>=0.9.12",
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+]
+dynamic = ["version"]
+
+[project.urls]
+Homepage = "https://github.com/NVIDIA/modulus"
+Documentation = "https://docs.nvidia.com/modulus/#core"
+Issues = "https://github.com/NVIDIA/modulus/issues"
+Changelog = "https://github.com/NVIDIA/modulus/blob/main/CHANGELOG.md"
+
+[project.optional-dependencies]
+launch = [
+    "hydra-core>=1.2.0",
+    "termcolor>=2.1.1",
+    "wandb>=0.13.7",
+    "mlflow>=2.1.1",
+    "pydantic>=2.4.2",
+    "imageio>=2.28.1",
+    "moviepy>=1.0.3",
+]
+
+dev = [
+    "pytest>=6.0.0",
+    "pyyaml>=6.0",
+    "black==22.10.0",
+    "interrogate==1.5.0",
+    "coverage==6.5.0",
+    "ruff==0.0.290",
+]
+
+makani = [
+    # TODO(akamenev): PyPI does not allow direct URL deps, update once Makani is in PyPI
+    # "makani @ git+https://github.com/NVIDIA/modulus-makani.git@v0.1.0",
+    "torch-harmonics>=0.6.5",
+    "tensorly>=0.8.1",
+    "tensorly-torch>=0.4.0",
+]
+
+all = [
+    "h5py>=3.7.0",
+    "netcdf4>=1.6.3",
+    "ruamel.yaml>=0.17.22",
+    "scikit-learn>=1.0.2",
+    "warp-lang>=0.6.0",
+    "vtk>=9.2.6",
+    "pyvista>=0.40.1",
+    "cftime>=1.6.2",
+    "einops>=0.7.0",
+    "pyspng>=0.1.0",
+    "nvidia-modulus[launch]",
+    "nvidia-modulus[dev]",
+    "nvidia-modulus[makani]",
+]
+
+
+[tool.setuptools.dynamic]
+version = {attr = "modulus.__version__"}
+
+[tool.setuptools.packages.find]
+include = ["modulus", "modulus.*"]
+
+[tool.ruff]
+# Enable flake8/pycodestyle (`E`), Pyflakes (`F`), flake8-bandit (`S`),
+# isort (`I`), and performance 'PERF' rules.
+select = ["E", "F", "S", "I", "PERF"]
+fixable = ["I"]
+
+# Never enforce `E402`, `E501` (line length violations),
+# and `S311` (random number generators)
+ignore = ["E501", "S311"]
+
+# Exclude the examples and experimental folders
+exclude = ["examples", "modulus/experimental"]
+
+[tool.ruff.per-file-ignores]
+# Ignore `F401` (import violations) in all `__init__.py` files, and in `docs/*.py`.
+"__init__.py" = ["F401"]
+"docs/*.py" = ["F401"]
+
+# Ignore `S101` (assertions) in all `test` files.
+"test/*.py" = ["S101"]
+
+[project.entry-points."modulus.models"]
+AFNO = "modulus.models.afno:AFNO"
+DLWP = "modulus.models.dlwp:DLWP"
+FNO = "modulus.models.fno:FNO"
+GraphCastNet = "modulus.models.graphcast:GraphCastNet"
+MeshGraphNet = "modulus.models.meshgraphnet:MeshGraphNet"
+FullyConnected = "modulus.models.mlp:FullyConnected"
+Pix2Pix = "modulus.models.pix2pix:Pix2Pix"
+One2ManyRNN = "modulus.models.rnn:One2ManyRNN"
+SRResNet = "modulus.models.srrn:SRResNet"
+Pangu = "modulus.models.pangu:Pangu"
+Fengwu = "modulus.models.fengwu:Fengwu"
+SwinRNN = "modulus.models.swinvrnn:SwinRNN"
