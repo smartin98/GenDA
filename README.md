@@ -2,8 +2,6 @@
 
 GenDA - Generative Data Assimilation. 
 
-:warning: *Work In Progress.* :warning:
-
 ![Alt text](images/GenDA_generation_OSSE.gif)
 
 Experiments in generative neural data assimilation for multi-modal surface ocean state estimation. This code is associated with the paper:
